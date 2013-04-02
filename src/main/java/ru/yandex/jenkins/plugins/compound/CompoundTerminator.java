@@ -18,6 +18,7 @@ import jenkins.model.Jenkins;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 
+@SuppressWarnings("unchecked")
 public class CompoundTerminator extends Recorder {
 
 	@DataBoundConstructor
@@ -67,7 +68,7 @@ public class CompoundTerminator extends Recorder {
 	@Extension
 	public static class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 		@Override
-		public boolean isApplicable(Class<? extends AbstractProject> jobType) {
+		public boolean isApplicable(@SuppressWarnings("rawtypes") Class<? extends AbstractProject> jobType) {
 			return true;
 		}
 

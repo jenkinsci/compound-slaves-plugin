@@ -1,6 +1,5 @@
 package ru.yandex.jenkins.plugins.compound;
 
-import hudson.AbortException;
 import hudson.model.ResourceList;
 import hudson.model.Computer;
 import hudson.model.Executor;

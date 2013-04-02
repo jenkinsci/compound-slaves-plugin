@@ -81,7 +81,7 @@ public class CompoundBuilder extends Builder {
 		listener.getLogger().println("[CompoundBuilder] " + message);
 	}
 
-	@SuppressWarnings("deprecation")
+	@SuppressWarnings({ "deprecation", "unchecked", "rawtypes" })
 	@Override
 	public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
 		try {

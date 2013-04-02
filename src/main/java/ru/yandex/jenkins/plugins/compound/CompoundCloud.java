@@ -41,6 +41,7 @@ import org.kohsuke.stapler.QueryParameter;
 import ru.yandex.jenkins.plugins.compound.CompoundCloud.ConfigurationEntry.SlaveEntry;
 import ru.yandex.jenkins.plugins.compound.CompoundSlave.DescriptorImpl;
 import ru.yandex.jenkins.plugins.compound.CompoundSlave.Entry;
+import ru.yandex.jenkins.plugins.nimbula.NimbulaCloud;
 
 
 /**
@@ -52,7 +53,7 @@ public class CompoundCloud extends AbstractCloudImpl {
 	private final String backend;
 	private final int retryTimeout;
 	private final List<ConfigurationEntry> configuration;
-	private final AtomicInteger nodesProvisioned = new AtomicInteger(0);
+	private final AtomicInteger nodesProvisioned;
 
 	private static final Logger logger = Logger.getLogger(CompoundCloud.class.getCanonicalName());
 
@@ -125,6 +126,18 @@ public class CompoundCloud extends AbstractCloudImpl {
 		this.backend = backendCloud;
 		this.configuration = configuration;
 		this.retryTimeout = Integer.parseInt(retryTimeout);
+
+		Cloud oldMe = Jenkins.getInstance().getCloud(this.name);
+
+		// poor man's persistence - we can't do it thread synchonously, so we
+		// try our best..
+		// nevertheless, it can cause bad stuff in many a race condition case
+		// TODO: invent something good about this
+		if (oldMe instanceof NimbulaCloud) {
+			this.nodesProvisioned = new AtomicInteger(((CompoundCloud) oldMe).getNodesProvisioned().get());
+		} else {
+			this.nodesProvisioned = new AtomicInteger(0);
+		}
 	}
 
 	@Override
@@ -148,12 +161,13 @@ public class CompoundCloud extends AbstractCloudImpl {
 		}
 
 		final int nodeNumber = nodesProvisioned.incrementAndGet();
+		final String nodeName = MessageFormat.format("{0}-{2}_{1,number,#}", name, nodeNumber, entry.getLabelAtom());
 
 		Future<Node> future = Computer.threadPoolForRemoting.submit(new Callable<Node>() {
 			@Override
 			public Node call() throws Exception {
 				try {
-					return doCreateSlave(entry, nodeNumber);
+					return doCreateSlave(entry, nodeNumber, nodeName);
 				} catch (Exception e) {
 					configProvisioningFailed(entry);
 					throw e;
@@ -162,12 +176,12 @@ public class CompoundCloud extends AbstractCloudImpl {
 		});
 
 		// we always set numExecutors to 1 since CompoundSlave's are single-use by design
-		result.add(new PlannedNode("New-compound-node-" + nodeNumber, future, 1));
+		result.add(new PlannedNode(nodeName, future, 1));
 
 		return result;
 	}
 
-	protected CompoundSlave doCreateSlave(ConfigurationEntry entry, int nodeNumber) throws CompoundingException {
+	protected CompoundSlave doCreateSlave(ConfigurationEntry entry, int nodeNumber, String nodeName) throws CompoundingException {
 		List<Entry> slaveEntries = new ArrayList<CompoundSlave.Entry>();
 		try {
 			List<Future<Collection<Entry>>> newSlaves = new ArrayList<Future<Collection<Entry>>>();
@@ -196,8 +210,7 @@ public class CompoundCloud extends AbstractCloudImpl {
 				cleanup(slaveEntries);
 				throw new CompoundingException("Deployment sub-slaves failed, see log");
 			}
-
-			return new CompoundSlave("Dynamic-compound-" + nodeNumber, "Dynamically-created compound node for label " + entry.getLabelAtom(), entry.getLabelAtom().toString(), slaveEntries);
+			return new CompoundSlave(nodeName, "Dynamically-created compound node for label " + entry.getLabelAtom(), entry.getLabelAtom().toString(), slaveEntries);
 		} catch (FormException e) {
 			logger.log(Level.SEVERE, "Form exception: " + e.getMessage(), e);
 			cleanup(slaveEntries);
@@ -368,6 +381,10 @@ public class CompoundCloud extends AbstractCloudImpl {
 
 	public int getRetryTimeout() {
 		return retryTimeout;
+	}
+
+	public AtomicInteger getNodesProvisioned() {
+		return nodesProvisioned;
 	}
 
 }

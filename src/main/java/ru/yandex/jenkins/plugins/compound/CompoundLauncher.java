@@ -25,8 +25,6 @@ import java.util.logging.Logger;
  *
  */
 public class CompoundLauncher extends ComputerLauncher {
-	private static final Logger logger = Logger.getLogger(CompoundLauncher.class.getCanonicalName());
-
 	private CompoundSlave compoundSlave;
 
 	public CompoundLauncher(CompoundSlave slave) {

@@ -41,9 +41,9 @@
       <version>3.0.5</version>
     </dependency>
     <dependency>
-      <groupId>com.yandex.at.jenkins</groupId>
+      <groupId>ru.yandex.jenkins.plugins</groupId>
       <artifactId>nimbula</artifactId>
-      <version>1.1-SNAPSHOT</version>
+      <version>1.2.2-SNAPSHOT</version>
       <optional>true</optional>
     </dependency>
   </dependencies>
