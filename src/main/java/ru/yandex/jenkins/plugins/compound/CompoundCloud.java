@@ -133,7 +133,7 @@ public class CompoundCloud extends AbstractCloudImpl {
 		// try our best..
 		// nevertheless, it can cause bad stuff in many a race condition case
 		// TODO: invent something good about this
-		if (oldMe instanceof NimbulaCloud) {
+		if (oldMe instanceof CompoundCloud) {
 			this.nodesProvisioned = new AtomicInteger(((CompoundCloud) oldMe).getNodesProvisioned().get());
 		} else {
 			this.nodesProvisioned = new AtomicInteger(0);
