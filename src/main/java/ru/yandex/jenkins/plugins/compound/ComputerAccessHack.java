@@ -28,7 +28,7 @@ public class ComputerAccessHack {
 	public void setNumExecutors(int number) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
 		Method method = getMethod(Computer.class, "setNumExecutors");
 
-		method.invoke(computer, new Integer(number));
+		method.invoke(computer, Integer.valueOf(number));
 	}
 
 	public void occupyExecutors(CompoundSlave master) throws IllegalArgumentException, IllegalAccessException, IOException {
