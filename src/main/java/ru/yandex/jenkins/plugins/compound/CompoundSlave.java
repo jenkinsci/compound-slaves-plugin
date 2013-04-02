@@ -128,8 +128,8 @@ public class CompoundSlave extends AbstractCloudSlave {
 
 		self = (Slave) jenkins.getNode(slaveNames.get(ROOT).get(0));
 
-		for(String slaveRole: slaveNames.keySet()) {
-			for(String slaveName: slaveNames.get(slaveRole)) {
+		for(java.util.Map.Entry<String, List<String>> slaveEntry: slaveNames.entrySet()) {
+			for(String slaveName: slaveEntry.getValue()) {
 
 				Node node = jenkins.getNode(slaveName);
 
@@ -143,7 +143,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 				enslave((Slave) node, this);
 				((Slave) node).setRetentionStrategy(getRetentionStrategy());
 
-				getSlaves(slaveRole).add((Slave) node);
+				getSlaves(slaveEntry.getKey()).add((Slave) node);
 			}
 		}
 	}
