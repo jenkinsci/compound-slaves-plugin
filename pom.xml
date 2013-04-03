@@ -8,7 +8,7 @@
 
   <groupId>com.yandex.at.jenkins</groupId>
   <artifactId>compound-slaves</artifactId>
-  <version>1.1-SNAPSHOT</version>
+  <version>1.2-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <!-- get every artifact through repo.jenkins-ci.org, which proxies all the artifacts that we need -->
