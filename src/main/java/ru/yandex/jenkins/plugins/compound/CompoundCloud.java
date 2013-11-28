@@ -267,7 +267,7 @@ public class CompoundCloud extends AbstractCloudImpl {
 				} else if (result.size() != slaveEntry.getNumber()) {
 					logger.warning(MessageFormat.format("Provisioning failed to fullfill request, gave us {0} nodes instead of {1}", result.size(), slaveEntry.getNumber()));
 					cleanup(result);
-					throw new CompoundingException("Wrong nuber of nodes got provisioned, see log above.");
+					throw new CompoundingException("Wrong number of nodes got provisioned, see log above.");
 				} else {
 					return result;
 				}
