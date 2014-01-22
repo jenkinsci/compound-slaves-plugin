@@ -18,10 +18,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.dasein.cloud.compute.VirtualMachine;
+import org.jclouds.compute.domain.NodeMetadata;
 
 import ru.yandex.jenkins.plugins.nimbula.NimbulaException;
 import ru.yandex.jenkins.plugins.nimbula.NimbulaSlave;
 import ru.yandex.jenkins.plugins.nimbula.NimbulaUtil;
+import jenkins.plugins.jclouds.compute.JCloudsSlave;
 
 
 /**
@@ -116,6 +118,12 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 					} catch (NimbulaException e) {
 						e.printStackTrace(listener.fatalError("[compound-slave] Failed to get details for " + subSlave.getDisplayName() + ":\n"));
 					}
+				} else if (subSlave instanceof JCloudsSlave) {
+					listener.getLogger().println("[compound-slave] slave " + subSlave.getDisplayName() + " is a JCloudSlave - adding it's IP adress");
+					JCloudsSlave jcloudSlave = (JCloudsSlave) subSlave;
+					NodeMetadata metaData = jcloudSlave.getNodeMetaData();
+					String address = (String) metaData.getPrivateAddresses().toArray()[0];
+					values.put(MessageFormat.format("{0}_{1}_{2}", role, i, "ip").toLowerCase(), address);
 
 				} else {
 					listener.getLogger().println("[compound-slave] slave " + subSlave.getDisplayName() + " is not a useful slave");

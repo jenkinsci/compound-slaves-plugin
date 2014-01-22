@@ -43,7 +43,13 @@
     <dependency>
       <groupId>ru.yandex.jenkins.plugins</groupId>
       <artifactId>nimbula</artifactId>
-      <version>1.2.2-SNAPSHOT</version>
+      <version>1.2.5</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>jclouds-jenkins</artifactId>
+      <version>2.5-SNAPSHOT</version>
       <optional>true</optional>
     </dependency>
   </dependencies>
