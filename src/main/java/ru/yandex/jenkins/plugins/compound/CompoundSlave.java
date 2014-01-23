@@ -233,13 +233,11 @@ public class CompoundSlave extends AbstractCloudSlave {
 
 		private void addRoleFrom(JSONObject roleObject) {
 			String role = roleObject.getString("role");
-			System.out.println("Got new role " + role);
 			roles.add(role);
 		}
 
 		@Override
 		public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-			System.out.println("Got formData " + formData);
 			Object rolesObject = formData.get("roles");
 
 			List<String> oldRoles = getRoles();
@@ -250,7 +248,6 @@ public class CompoundSlave extends AbstractCloudSlave {
 				addRoleFrom((JSONObject) rolesObject);
 			} else if (rolesObject instanceof JSONArray) {
 				// means we get just a single value from the page
-				System.out.println("Got roles " + rolesObject);
 				for(int i = 0; i < ((JSONArray) rolesObject).size(); i++) {
 					addRoleFrom(((JSONArray) rolesObject).getJSONObject(i));
 				}
