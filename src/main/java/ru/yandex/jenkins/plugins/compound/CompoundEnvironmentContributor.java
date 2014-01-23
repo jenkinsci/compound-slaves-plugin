@@ -122,7 +122,7 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 					listener.getLogger().println("[compound-slave] slave " + subSlave.getDisplayName() + " is a JCloudSlave - adding it's IP adress");
 					JCloudsSlave jcloudSlave = (JCloudsSlave) subSlave;
 					NodeMetadata metaData = jcloudSlave.getNodeMetaData();
-					String address = (String) metaData.getPrivateAddresses().toArray()[0];
+					String address = (String) metaData.getPublicAddresses().toArray()[0];
 					values.put(MessageFormat.format("{0}_{1}_{2}", role, i, "ip").toLowerCase(), address);
 
 				} else {
