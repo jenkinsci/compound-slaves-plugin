@@ -2,7 +2,7 @@
   <f:section title="Compound slaves">
     <f:entry title="${%Sub-slave roles}">
     <f:repeatable name="roles" var="role" items="${descriptor.roles}" noAddButton="false">
-      <table width="40%">
+      <table>
         <f:entry title="${%Role}" field="role">
           <f:textbox value="${role}"/>
         </f:entry>

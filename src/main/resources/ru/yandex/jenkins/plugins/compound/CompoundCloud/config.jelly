@@ -13,13 +13,13 @@
   </f:entry>
   <f:entry title="${%Deployed configurations}">
     <f:repeatable name="configuration" minimum="0" var="conf" noAddButton="false" items="${instance.configuration}">
-      <table width="40%">
+      <table class="pane">
         <f:entry title="${%Label atom}" field="labelAtom">
           <f:textbox value="${conf.labelAtom}"/>
         </f:entry>
         <f:entry title="${%Sub-slaves}">
           <f:repeatable name="entries" minimum="0" var="subconf" items="${conf.entries}">
-            <table width="30%">
+            <table width="50%">
               <f:entry title="${%Role}" field="role">
                 <f:select value="${subconf.role}" />
               </f:entry>

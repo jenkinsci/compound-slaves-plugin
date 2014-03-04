@@ -10,7 +10,7 @@
 
   <f:entry title="${%Sub-slaves}">
     <f:repeatable name="slaveEntries" minimum="1" var="slave" noAddButton="false" items="${instance.entries}">
-      <table width="40%">
+      <table>
         <f:entry title="${%Slave}" field="slave">
           <f:select value="${slave.name}"/>
         </f:entry>
