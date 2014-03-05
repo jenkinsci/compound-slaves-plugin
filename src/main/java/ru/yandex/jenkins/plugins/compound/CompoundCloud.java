@@ -41,12 +41,10 @@ import org.kohsuke.stapler.QueryParameter;
 import ru.yandex.jenkins.plugins.compound.CompoundCloud.ConfigurationEntry.SlaveEntry;
 import ru.yandex.jenkins.plugins.compound.CompoundSlave.DescriptorImpl;
 import ru.yandex.jenkins.plugins.compound.CompoundSlave.Entry;
-import ru.yandex.jenkins.plugins.nimbula.NimbulaCloud;
-
 
 /**
  * Cloud, capable of deploying a {@link CompoundSlave} via other clouds
- *
+ * 
  * @author pupssman
  */
 public class CompoundCloud extends AbstractCloudImpl {
@@ -59,7 +57,7 @@ public class CompoundCloud extends AbstractCloudImpl {
 
 	/**
 	 * Describes a single deployeable configuration, i.e. a kind of {@link CompoundSlave} with given set of sub-nodes
-	 *
+	 * 
 	 * @author pupssman
 	 */
 	public static class ConfigurationEntry {
@@ -71,7 +69,7 @@ public class CompoundCloud extends AbstractCloudImpl {
 
 		/**
 		 * Describes a single sub-node kind within a {@link CompoundSlave}
-		 *
+		 * 
 		 * @author pupssman
 		 */
 		public static class SlaveEntry {
@@ -79,11 +77,13 @@ public class CompoundCloud extends AbstractCloudImpl {
 			private final LabelAtom labelAtom;
 			private final int number;
 
-
 			/**
-			 * @param role within {@link CompoundSlave}
-			 * @param labelAtom will be used to deploy sub-slave in {@link CompoundCloud#backendCloud}
-			 * @param number of the copies
+			 * @param role
+			 *            within {@link CompoundSlave}
+			 * @param labelAtom
+			 *            will be used to deploy sub-slave in {@link CompoundCloud#backendCloud}
+			 * @param number
+			 *            of the copies
 			 */
 			@DataBoundConstructor
 			public SlaveEntry(String role, String labelAtom, String number) {
@@ -148,7 +148,8 @@ public class CompoundCloud extends AbstractCloudImpl {
 			@Override
 			public Boolean execute(ConfigurationEntry value) {
 				return label.matches(Arrays.asList(value.getLabelAtom()));
-			}}, null);
+			}
+		}, null);
 
 		if (entry == null) {
 			logger.warning(MessageFormat.format("Failed to deploy label {0} because no configuration found.", label));
@@ -156,7 +157,9 @@ public class CompoundCloud extends AbstractCloudImpl {
 		}
 
 		if (configHasRecentErrors(entry)) {
-			logger.warning(MessageFormat.format("Requested to deploy label {0}, but corresponding config had problems recently. Will wait until timeout of {1} seconds to retry.", label.toString(), retryTimeout));
+			logger.warning(MessageFormat.format(
+					"Requested to deploy label {0}, but corresponding config had problems recently. Will wait until timeout of {1} seconds to retry.",
+					label.toString(), retryTimeout));
 			return result;
 		}
 
@@ -186,14 +189,14 @@ public class CompoundCloud extends AbstractCloudImpl {
 		try {
 			List<Future<Collection<Entry>>> newSlaves = new ArrayList<Future<Collection<Entry>>>();
 
-			for (final SlaveEntry slaveEntry: entry.getEntries()) {
+			for (final SlaveEntry slaveEntry : entry.getEntries()) {
 				newSlaves.add(doProvisionSubSlave(slaveEntry));
 			}
 
 			// cleanup flag. We can't do cleanup in catch because we need all futures to happen before cleanup
 			boolean cleanup = false;
 
-			for(Future<Collection<Entry>> future: newSlaves) {
+			for (Future<Collection<Entry>> future : newSlaves) {
 				try {
 					slaveEntries.addAll(future.get());
 				} catch (InterruptedException e) {
@@ -210,7 +213,8 @@ public class CompoundCloud extends AbstractCloudImpl {
 				cleanup(slaveEntries);
 				throw new CompoundingException("Deployment sub-slaves failed, see log");
 			}
-			return new CompoundSlave(nodeName, "Dynamically-created compound node for label " + entry.getLabelAtom(), entry.getLabelAtom().toString(), slaveEntries);
+			return new CompoundSlave(nodeName, "Dynamically-created compound node for label " + entry.getLabelAtom(), entry.getLabelAtom().toString(),
+					slaveEntries);
 		} catch (FormException e) {
 			logger.log(Level.SEVERE, "Form exception: " + e.getMessage(), e);
 			cleanup(slaveEntries);
@@ -223,13 +227,13 @@ public class CompoundCloud extends AbstractCloudImpl {
 	}
 
 	private Future<Collection<Entry>> doProvisionSubSlave(final SlaveEntry slaveEntry) {
-		return Computer.threadPoolForRemoting.submit(new Callable<Collection<Entry>> () {
+		return Computer.threadPoolForRemoting.submit(new Callable<Collection<Entry>>() {
 			@Override
 			public Collection<Entry> call() throws Exception {
 				final Jenkins jenkins = Jenkins.getInstance();
 				List<PlannedNode> plannedNodes = new ArrayList<NodeProvisioner.PlannedNode>();
 
-				for (int i = 0; i < slaveEntry.getNumber();i ++) {
+				for (int i = 0; i < slaveEntry.getNumber(); i++) {
 					plannedNodes.addAll(getBackendCloud().provision(slaveEntry.getLabelAtom(), 1));
 				}
 
@@ -263,9 +267,12 @@ public class CompoundCloud extends AbstractCloudImpl {
 				if (result.contains(null)) {
 					logger.warning("Provisioning failed, cleaning up");
 					cleanup(result);
-					throw new CompoundingException("Some provisioning failed, see log above.");
+					throw new CompoundingException(MessageFormat.format(
+							"Some provisioning failed, see log above. Error deploying label-atom: {0} and role {1}", slaveEntry.getLabelAtom(),
+							slaveEntry.getRole()));
 				} else if (result.size() != slaveEntry.getNumber()) {
-					logger.warning(MessageFormat.format("Provisioning failed to fullfill request, gave us {0} nodes instead of {1}", result.size(), slaveEntry.getNumber()));
+					logger.warning(MessageFormat.format("Provisioning failed to fullfill request, gave us {0} nodes instead of {1}", result.size(),
+							slaveEntry.getNumber()));
 					cleanup(result);
 					throw new CompoundingException("Wrong number of nodes got provisioned, see log above.");
 				} else {
@@ -277,16 +284,17 @@ public class CompoundCloud extends AbstractCloudImpl {
 
 	/**
 	 * Cleans up all the created stuff in these entries.
-	 *
-	 * Terminates {@link AbstractCloudSlave}s and removes all the others
-	 * (in case {@link CompoundCloud#backendCloud} gives us regular slaves instead of {@link AbstractCloudSlave})
+	 * 
+	 * Terminates {@link AbstractCloudSlave}s and removes all the others (in case {@link CompoundCloud#backendCloud} gives us regular slaves instead of
+	 * {@link AbstractCloudSlave})
+	 * 
 	 * @param entries
 	 * @throws InterruptedException
 	 * @throws IOException
 	 */
 	private void cleanup(Collection<Entry> entries) {
 		Jenkins jenkins = Jenkins.getInstance();
-		for (Entry entry: entries) {
+		for (Entry entry : entries) {
 			if (entry != null) {
 				Node node = jenkins.getNode(entry.getName());
 				if (node != null) {
@@ -310,7 +318,7 @@ public class CompoundCloud extends AbstractCloudImpl {
 
 	@Override
 	public boolean canProvision(Label label) {
-		for (ConfigurationEntry entry: configuration) {
+		for (ConfigurationEntry entry : configuration) {
 			if (label.matches(Arrays.asList(entry.getLabelAtom()))) {
 				return true;
 			}
@@ -338,7 +346,7 @@ public class CompoundCloud extends AbstractCloudImpl {
 
 			DescriptorImpl descriptor = (DescriptorImpl) Jenkins.getInstance().getDescriptor(CompoundSlave.class);
 
-			for (String role: descriptor.getRoles()) {
+			for (String role : descriptor.getRoles()) {
 				model.add(role, role);
 			}
 
@@ -348,7 +356,7 @@ public class CompoundCloud extends AbstractCloudImpl {
 		public ListBoxModel doFillBackendCloudItems() {
 			ListBoxModel model = new ListBoxModel();
 
-			for (Cloud cloud: Jenkins.getInstance().clouds) {
+			for (Cloud cloud : Jenkins.getInstance().clouds) {
 				if (cloud instanceof CompoundCloud) {
 					continue;
 				}

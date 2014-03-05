@@ -37,11 +37,11 @@ import org.kohsuke.stapler.StaplerResponse;
 
 /**
  * A compound slave, containing other sub-slaves.
- *
+ * 
  * Intended for use with {@link CompoundBuilder} to run commands on separate slaves.
- *
+ * 
  * @author pupssman
- *
+ * 
  */
 public class CompoundSlave extends AbstractCloudSlave {
 
@@ -54,6 +54,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 
 	/**
 	 * Entry to pass around jelly-made ui
+	 * 
 	 * @author pupssman
 	 */
 	public static final class Entry {
@@ -69,21 +70,24 @@ public class CompoundSlave extends AbstractCloudSlave {
 		public String getName() {
 			return slave;
 		}
+
 		public void setSlave(String slave) {
 			this.slave = slave;
 		}
+
 		public String getRole() {
 			return role;
 		}
+
 		public void setRole(String role) {
 			this.role = role;
 		}
 	}
 
 	/**
-	 * This is a hack method to deduce remote FS root to relatively to the ROOT slave FS root
-	 * before anything to set it in a final field - see {@link CompoundSlave#CompoundSlave(String, String, String, List)}
-	 *
+	 * This is a hack method to deduce remote FS root to relatively to the ROOT slave FS root before anything to set it in a final field - see
+	 * {@link CompoundSlave#CompoundSlave(String, String, String, List)}
+	 * 
 	 * @param slaveNames
 	 * @return
 	 * @throws FormException
@@ -107,7 +111,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 	protected static Map<String, List<String>> makeNames(List<Entry> entries) {
 		Map<String, List<String>> slaveNames = new HashMap<String, List<String>>();
 
-		for (Entry entry: entries) {
+		for (Entry entry : entries) {
 			if (slaveNames.get(entry.role) == null) {
 				slaveNames.put(entry.role, new ArrayList<String>());
 			}
@@ -128,8 +132,8 @@ public class CompoundSlave extends AbstractCloudSlave {
 
 		self = (Slave) jenkins.getNode(slaveNames.get(ROOT).get(0));
 
-		for(java.util.Map.Entry<String, List<String>> slaveEntry: slaveNames.entrySet()) {
-			for(String slaveName: slaveEntry.getValue()) {
+		for (java.util.Map.Entry<String, List<String>> slaveEntry : slaveNames.entrySet()) {
+			for (String slaveName : slaveEntry.getValue()) {
 
 				Node node = jenkins.getNode(slaveName);
 
@@ -155,7 +159,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 	}
 
 	public List<Slave> getSlaves(String role) {
-		synchronized(slaves) {
+		synchronized (slaves) {
 			if (slaves.get(role) == null) {
 				slaves.put(role, new ArrayList<Slave>());
 			}
@@ -167,7 +171,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 	public List<Entry> getEntries() {
 		List<Entry> result = new ArrayList<CompoundSlave.Entry>();
 
-		for (final java.util.Map.Entry<String, List<Slave>>  mapEntry: slaves.entrySet()) {
+		for (final java.util.Map.Entry<String, List<Slave>> mapEntry : slaves.entrySet()) {
 			result.addAll(FunctionalPrimitives.map(mapEntry.getValue(), new Functor<Slave, Entry>() {
 				@Override
 				public Entry execute(Slave value) {
@@ -191,7 +195,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 			load();
 		}
 
-		private List<String> roles = new ArrayList<String>(Arrays.asList(ROOT));
+		private final List<String> roles = new ArrayList<String>(Arrays.asList(ROOT));
 
 		public List<String> getRoles() {
 			return new ArrayList<String>(roles);
@@ -210,7 +214,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 		public ListBoxModel doFillSlaveItems() {
 			ListBoxModel model = new ListBoxModel();
 
-			for(Node node: Jenkins.getInstance().getNodes()) {
+			for (Node node : Jenkins.getInstance().getNodes()) {
 				if (node instanceof CompoundSlave) {
 					continue;
 				}
@@ -224,7 +228,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 		public ListBoxModel doFillRoleItems() {
 			ListBoxModel model = new ListBoxModel();
 
-			for (String role: getRoles()) {
+			for (String role : getRoles()) {
 				model.add(role, role);
 			}
 
@@ -248,7 +252,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 				addRoleFrom((JSONObject) rolesObject);
 			} else if (rolesObject instanceof JSONArray) {
 				// means we get just a single value from the page
-				for(int i = 0; i < ((JSONArray) rolesObject).size(); i++) {
+				for (int i = 0; i < ((JSONArray) rolesObject).size(); i++) {
 					addRoleFrom(((JSONArray) rolesObject).getJSONObject(i));
 				}
 			} else if (rolesObject != null) {
@@ -256,7 +260,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 				roles.addAll(oldRoles);
 			}
 			save();
-			return super.configure(req,formData);
+			return super.configure(req, formData);
 		}
 
 		public FormValidation doCheckRole(@QueryParameter String role) {
@@ -286,13 +290,12 @@ public class CompoundSlave extends AbstractCloudSlave {
 	 */
 	@Override
 	protected void _terminate(TaskListener listener) throws IOException, InterruptedException {
-		for (List<Slave> slaves: getAllSlaves().values()) {
-			for (Slave slave: slaves) {
-				free(slave);
+		for (List<Slave> slaves : getAllSlaves().values()) {
+			for (Slave slave : slaves) {
 				if (slave instanceof AbstractCloudSlave) {
 					try {
 						listener.getLogger().println("Terminating sub-slave " + slave.getDisplayName());
-						((AbstractCloudSlave)slave).terminate();
+						((AbstractCloudSlave) slave).terminate();
 					} catch (IOException e) {
 						e.printStackTrace(listener.fatalError("Terminating slave {0} failed", slave.getDisplayName()));
 					} catch (InterruptedException e) {
