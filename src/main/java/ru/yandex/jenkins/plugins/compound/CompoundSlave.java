@@ -292,6 +292,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 	protected void _terminate(TaskListener listener) throws IOException, InterruptedException {
 		for (List<Slave> slaves : getAllSlaves().values()) {
 			for (Slave slave : slaves) {
+				free(slave);
 				if (slave instanceof AbstractCloudSlave) {
 					try {
 						listener.getLogger().println("Terminating sub-slave " + slave.getDisplayName());
