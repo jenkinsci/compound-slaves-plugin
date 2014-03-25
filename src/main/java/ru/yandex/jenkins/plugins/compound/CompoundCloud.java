@@ -189,6 +189,8 @@ public class CompoundCloud extends AbstractCloudImpl {
 		try {
 			List<Future<Collection<Entry>>> newSlaves = new ArrayList<Future<Collection<Entry>>>();
 
+			logger.severe(MessageFormat.format("Starting provision compoundSlave {0}", nodeName));
+
 			for (final SlaveEntry slaveEntry : entry.getEntries()) {
 				newSlaves.add(doProvisionSubSlave(slaveEntry));
 			}

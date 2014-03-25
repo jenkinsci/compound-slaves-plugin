@@ -4,10 +4,10 @@ import hudson.Launcher;
 import hudson.model.TaskListener;
 import hudson.model.Computer;
 import hudson.model.Slave;
-import hudson.slaves.ComputerLauncher;
-import hudson.slaves.SlaveComputer;
 import hudson.remoting.Channel;
 import hudson.remoting.Channel.Listener;
+import hudson.slaves.ComputerLauncher;
+import hudson.slaves.SlaveComputer;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -20,14 +20,14 @@ import java.util.logging.Logger;
 
 /**
  * A {@link Launcher} for {@link CompoundSlave}.
- *
+ * 
  * Tries to launch all sub-slaves first and marks them as non-accepting tasks when in {@link CompoundSlave}.
- *
+ * 
  * @author pupssman
- *
+ * 
  */
 public class CompoundLauncher extends ComputerLauncher {
-	private CompoundSlave compoundSlave;
+	private final CompoundSlave compoundSlave;
 
 	public CompoundLauncher(CompoundSlave slave) {
 		this.compoundSlave = slave;
@@ -43,7 +43,9 @@ public class CompoundLauncher extends ComputerLauncher {
 	public void launch(SlaveComputer computer, final TaskListener listener) throws IOException, InterruptedException {
 		List<Future<Boolean>> futures = new ArrayList<Future<Boolean>>();
 
-		for(final Slave slave: getSlaves()) {
+		say(listener, compoundSlave.getNodeName() + " is about to launch right now");
+
+		for (final Slave slave : getSlaves()) {
 			say(listener, "Launching sub-slave " + slave.getNodeName());
 			SlaveComputer slaveComputer = slave.getComputer();
 
@@ -65,7 +67,7 @@ public class CompoundLauncher extends ComputerLauncher {
 
 		boolean allSlavesLaunched = true;
 
-		for (Future<Boolean> future: futures) {
+		for (Future<Boolean> future : futures) {
 			try {
 				allSlavesLaunched &= future.get();
 			} catch (ExecutionException e) {
@@ -94,7 +96,7 @@ public class CompoundLauncher extends ComputerLauncher {
 	private Collection<Slave> getSlaves() {
 		List<Slave> result = new ArrayList<Slave>();
 
-		for (List<Slave> slaves: compoundSlave.getAllSlaves().values()) {
+		for (List<Slave> slaves : compoundSlave.getAllSlaves().values()) {
 			result.addAll(slaves);
 		}
 
@@ -103,7 +105,7 @@ public class CompoundLauncher extends ComputerLauncher {
 
 	@Override
 	public void afterDisconnect(SlaveComputer computer, TaskListener listener) {
-		for(Slave slave: getSlaves()) {
+		for (Slave slave : getSlaves()) {
 			CompoundSlave.free(slave);
 			slave.getLauncher().afterDisconnect(slave.getComputer(), listener);
 		}
@@ -111,7 +113,7 @@ public class CompoundLauncher extends ComputerLauncher {
 
 	@Override
 	public void beforeDisconnect(SlaveComputer computer, TaskListener listener) {
-		for(Slave slave: getSlaves()) {
+		for (Slave slave : getSlaves()) {
 			slave.getLauncher().beforeDisconnect(slave.getComputer(), listener);
 		}
 	}
