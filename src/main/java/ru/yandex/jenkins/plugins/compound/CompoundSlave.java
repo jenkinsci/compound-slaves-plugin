@@ -49,7 +49,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 	private Slave self;
 
 	private static final long serialVersionUID = 1L;
-	private static final String ROOT = "ROOT";
+	public static final String ROLE_ROOT = "ROOT";
 	private static final Logger logger = Logger.getLogger(CompoundSlave.class.getCanonicalName());
 
 	/**
@@ -93,16 +93,16 @@ public class CompoundSlave extends AbstractCloudSlave {
 	 * @throws FormException
 	 */
 	private static String inventRemoteFS(Map<String, List<String>> slaveNames) throws FormException {
-		if (!slaveNames.containsKey(ROOT)) {
-			throw new FormException("There should be " + ROOT + " slave defined", "slave");
+		if (!slaveNames.containsKey(ROLE_ROOT)) {
+			throw new FormException("There should be " + ROLE_ROOT + " slave defined", "slave");
 		}
 
-		String rootSlaveName = slaveNames.get(ROOT).get(0);
+		String rootSlaveName = slaveNames.get(ROLE_ROOT).get(0);
 
 		Slave rootNode = (Slave) Jenkins.getInstance().getNode(rootSlaveName);
 
 		if (rootNode == null) {
-			throw new FormException(ROOT + " slave has name " + rootSlaveName + " but it can't be found in Jenkins", "slave");
+			throw new FormException(ROLE_ROOT + " slave has name " + rootSlaveName + " but it can't be found in Jenkins", "slave");
 		}
 
 		return rootNode.getRemoteFS() + "/compound-root";
@@ -130,7 +130,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 
 		Jenkins jenkins = Jenkins.getInstance();
 
-		self = (Slave) jenkins.getNode(slaveNames.get(ROOT).get(0));
+		self = (Slave) jenkins.getNode(slaveNames.get(ROLE_ROOT).get(0));
 
 		for (java.util.Map.Entry<String, List<String>> slaveEntry : slaveNames.entrySet()) {
 			for (String slaveName : slaveEntry.getValue()) {
@@ -190,17 +190,66 @@ public class CompoundSlave extends AbstractCloudSlave {
 	@Extension
 	public static class DescriptorImpl extends SlaveDescriptor {
 
+		public static class RoleEntry {
+			private final String role;
+			private final String defaultLabel;
+			
+			public RoleEntry(String role, String defaultLabel) {
+				this.role = role;
+				this.defaultLabel = defaultLabel;
+			}
+			
+			public String getRole() {
+				return role;
+			}
+
+			public String getDefaultLabel() {
+				return defaultLabel;
+			}
+		}
+		
+		public Object readResolve() {
+			if(roles != null && !roles.isEmpty()){
+				for(String role : roles){
+					if(!role.equalsIgnoreCase(ROLE_ROOT)){
+						role_entries.add(new RoleEntry(role, null));
+					}
+				}
+				roles.clear();
+			}
+			return this;
+		}
+		
 		public DescriptorImpl() {
 			super();
 			load();
 		}
 
-		private final List<String> roles = new ArrayList<String>(Arrays.asList(ROOT));
+		@Deprecated
+		private final List<String> roles = new ArrayList<String>();
+		private final List<RoleEntry> role_entries = new ArrayList<RoleEntry>(Arrays.asList(new RoleEntry(ROLE_ROOT, null)));
 
-		public List<String> getRoles() {
-			return new ArrayList<String>(roles);
+		public List<String> getRoleNames() {
+			ArrayList<String> roleNames = new ArrayList<String>();
+			for(RoleEntry entry : role_entries) {
+				roleNames.add(entry.getRole());
+			}
+			return roleNames;
+		}
+		
+		public List<RoleEntry> getRoles() {
+			return new ArrayList<RoleEntry>(role_entries);
 		}
 
+		public String getDefaultLabelForRole(String role) {
+			for(RoleEntry entry : role_entries) {
+				if(entry.getRole().equalsIgnoreCase(role)){
+					return entry.getDefaultLabel();
+				}
+			}
+			return null;
+		}
+		
 		@Override
 		public void handleNewNodePage(ComputerSet computerSet, String name, StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
 			super.handleNewNodePage(computerSet, name, req, rsp);
@@ -228,7 +277,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 		public ListBoxModel doFillRoleItems() {
 			ListBoxModel model = new ListBoxModel();
 
-			for (String role : getRoles()) {
+			for (String role : getRoleNames()) {
 				model.add(role, role);
 			}
 
@@ -237,15 +286,16 @@ public class CompoundSlave extends AbstractCloudSlave {
 
 		private void addRoleFrom(JSONObject roleObject) {
 			String role = roleObject.getString("role");
-			roles.add(role);
+			String defaultLabel = roleObject.getString("defaultLabel");
+			role_entries.add(new RoleEntry(role, defaultLabel));
 		}
 
 		@Override
 		public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
 			Object rolesObject = formData.get("roles");
 
-			List<String> oldRoles = getRoles();
-			roles.clear();
+			List<RoleEntry> oldRoles = getRoles();
+			role_entries.clear();
 
 			if (rolesObject instanceof JSONObject) {
 				// means we get a set of values
@@ -257,7 +307,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 				}
 			} else if (rolesObject != null) {
 				// something unexpected - restore old roles
-				roles.addAll(oldRoles);
+				role_entries.addAll(oldRoles);
 			}
 			save();
 			return super.configure(req, formData);
@@ -268,6 +318,14 @@ public class CompoundSlave extends AbstractCloudSlave {
 				return FormValidation.ok();
 			} else {
 				return FormValidation.error("Bad role - use only one word in alphanumerics");
+			}
+		}
+		
+		public FormValidation doCheckDefaultLabel(@QueryParameter String defaultLabel) {
+			if (defaultLabel != null && !defaultLabel.isEmpty()) {
+				return FormValidation.ok();
+			} else {
+				return FormValidation.warning("You'd better specify the default label for this role! \nMay cause troubles during compound nodes configuring, if you want to use default label there.");
 			}
 		}
 	}
