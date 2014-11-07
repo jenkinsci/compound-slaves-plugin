@@ -35,6 +35,7 @@ import jedi.functional.FunctionalPrimitives;
 import jedi.functional.Functor;
 import jenkins.model.Jenkins;
 
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
@@ -97,7 +98,7 @@ public class CompoundCloud extends AbstractCloudImpl {
 			}
 			
 			private LabelAtom getLabelAtomForProvisioning() {
-				if(!labelAtom.getName().isEmpty()) {
+				if(!StringUtils.isEmpty(labelAtom.getName())) {
 					return labelAtom;
 				} else {
 					DescriptorImpl compoundSlaveDescriptor = (DescriptorImpl) Jenkins.getInstance().getDescriptor(CompoundSlave.class);
