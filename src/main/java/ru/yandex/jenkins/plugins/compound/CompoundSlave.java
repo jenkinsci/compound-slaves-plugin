@@ -243,7 +243,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 
 		public String getDefaultLabelForRole(String role) {
 			for(RoleEntry entry : role_entries) {
-				if(entry.getRole().equalsIgnoreCase(role)){
+				if(entry.getRole().equals(role)){
 					return entry.getDefaultLabel();
 				}
 			}

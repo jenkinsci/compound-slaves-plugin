@@ -97,7 +97,7 @@ public class CompoundCloud extends AbstractCloudImpl {
 			}
 			
 			private LabelAtom getLabelAtomForProvisioning() {
-				if(labelAtom.getName() != null && !labelAtom.getName().isEmpty()) {
+				if(!labelAtom.getName().isEmpty()) {
 					return labelAtom;
 				} else {
 					DescriptorImpl compoundSlaveDescriptor = (DescriptorImpl) Jenkins.getInstance().getDescriptor(CompoundSlave.class);
@@ -129,6 +129,13 @@ public class CompoundCloud extends AbstractCloudImpl {
 		}
 	}
 
+	/**
+	 * This constructor has another args sequence, compared to the next constructor, because List<ConfigurationEntry> and List<? extends ConfigurationEntry>
+	 * generate the same erasure for these 2 methods in case of the similar args sequence.
+	 * Though we need a possibility to extend the CompoundCloud with another class and be able to have configuration consisting of classes which extend ConfigurationEntry.
+	 * 
+	 * @author dchr
+	 */
 	@DataBoundConstructor
 	public CompoundCloud(String name, String maxInstances, String backendCloud, String retryTimeout, List<ConfigurationEntry> configuration) {
 		this(name, maxInstances, backendCloud, configuration, retryTimeout);
@@ -248,8 +255,9 @@ public class CompoundCloud extends AbstractCloudImpl {
 				final Jenkins jenkins = Jenkins.getInstance();
 				List<PlannedNode> plannedNodes = new ArrayList<NodeProvisioner.PlannedNode>();
 
+				LabelAtom labelAtomForProvisioning = slaveEntry.getLabelAtomForProvisioning();
 				for (int i = 0; i < slaveEntry.getNumber(); i++) {
-					plannedNodes.addAll(getBackendCloud().provision(slaveEntry.getLabelAtomForProvisioning(), 1));
+					plannedNodes.addAll(getBackendCloud().provision(labelAtomForProvisioning, 1));
 				}
 
 				List<Entry> result = FunctionalPrimitives.map(plannedNodes, new Functor<PlannedNode, Entry>() {
@@ -283,7 +291,7 @@ public class CompoundCloud extends AbstractCloudImpl {
 					logger.warning("Provisioning failed, cleaning up");
 					cleanup(result);
 					throw new CompoundingException(MessageFormat.format(
-							"Some provisioning failed, see log above. Error deploying label-atom: {0} and role {1}", slaveEntry.getLabelAtomForProvisioning(),
+							"Some provisioning failed, see log above. Error deploying label-atom: {0} and role {1}", labelAtomForProvisioning,
 							slaveEntry.getRole()));
 				} else if (result.size() != slaveEntry.getNumber()) {
 					logger.warning(MessageFormat.format("Provisioning failed to fullfill request, gave us {0} nodes instead of {1}", result.size(),
