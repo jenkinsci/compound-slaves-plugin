@@ -208,7 +208,7 @@ public class CompoundBuilder extends Builder {
 		public ListBoxModel doFillRoleItems() {
 			ListBoxModel model = new ListBoxModel();
 
-			for (String role: ((ru.yandex.jenkins.plugins.compound.CompoundSlave.DescriptorImpl) Jenkins.getInstance().getDescriptor(CompoundSlave.class)).getRoles()) {
+			for (String role: ((ru.yandex.jenkins.plugins.compound.CompoundSlave.DescriptorImpl) Jenkins.getInstance().getDescriptor(CompoundSlave.class)).getRoleNames()) {
 				model.add(role, role);
 			}
 
