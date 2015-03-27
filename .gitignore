@@ -4,3 +4,5 @@ work
 .settings
 .classpath
 .project
+.idea/
+compound-slaves.iml
