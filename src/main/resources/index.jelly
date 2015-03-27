@@ -2,5 +2,5 @@
   This view is used to render the installed plugins page.
 -->
 <div>
-  This plugin is a sample to explain how to write a Jenkins plugin.
+  This plugin allows uniting slaves in groups as well as deploying group slaves via other cloud plugins.
 </div>
