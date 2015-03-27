@@ -7,23 +7,20 @@ import hudson.model.TaskListener;
 import hudson.model.Computer;
 import hudson.model.EnvironmentContributor;
 import hudson.model.Executor;
-import hudson.model.Hudson;
 import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.Slave;
+import hudson.remoting.Callable;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.text.MessageFormat;
+import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
-
-import org.dasein.cloud.compute.VirtualMachine;
-import org.jclouds.compute.domain.NodeMetadata;
-
-import ru.yandex.jenkins.plugins.nimbula.NimbulaException;
-import ru.yandex.jenkins.plugins.nimbula.NimbulaSlave;
-import ru.yandex.jenkins.plugins.nimbula.NimbulaUtil;
-import jenkins.plugins.jclouds.compute.JCloudsSlave;
+import java.util.Set;
 
 
 /**
@@ -33,6 +30,8 @@ import jenkins.plugins.jclouds.compute.JCloudsSlave;
  */
 @Extension
 public class CompoundEnvironmentContributor extends EnvironmentContributor {
+
+	private static final int PING_TIMEOUT = 500;
 
 	public static final class EnvironmentAction extends InvisibleAction {
 		private final Map<String, String> values;
@@ -62,7 +61,7 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 		Node node = owner.getNode();
 
 		if (node instanceof CompoundSlave) {
-			listener.getLogger().println("[compound-slave] contibuting environment for " + run.getFullDisplayName());
+			listener.getLogger().println("[compound-slave] Contributing environment for " + run.getFullDisplayName());
 
 			buildEnvironmentFor((CompoundSlave) node, envs, listener);
 		}
@@ -77,7 +76,7 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 		if (environmentAction != null) {
 			values = environmentAction.getValues();
 		} else {
-			listener.getLogger().println("[compound-slave] no environment known - computing...");
+			listener.getLogger().println("[compound-slave] No environment known - computing...");
 			values = computeValues(slave, listener);
 			slave.toComputer().addAction(new EnvironmentAction(values));
 		}
@@ -98,39 +97,91 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 		Map<String, String> values;
 		values = new HashMap<String, String>();
 
-		if (Hudson.getInstance().getPlugin("nimbula") == null) {
-			return values;
-		}
-
 		for (String role: slave.getAllSlaves().keySet()) {
 			int i = 0;
 			for (Slave subSlave: slave.getAllSlaves().get(role)) {
 				i++;
-
-				if (subSlave instanceof NimbulaSlave) {
-					listener.getLogger().println("[compound-slave] slave " + subSlave.getDisplayName() + " is a NimbulaSlave - adding it's IP adress");
-					NimbulaSlave nimbulaSlave = (NimbulaSlave) subSlave;
-					VirtualMachine virtualMachine;
-					try {
-						virtualMachine = NimbulaUtil.getInstance(nimbulaSlave.getCloudName()).getVirtualMachine(((NimbulaSlave) subSlave).getVmID());
-						String address = virtualMachine.getPrivateIpAddresses()[0];
-						values.put(MessageFormat.format("{0}_{1}_{2}", role, i, "ip").toLowerCase(), address);
-					} catch (NimbulaException e) {
-						e.printStackTrace(listener.fatalError("[compound-slave] Failed to get details for " + subSlave.getDisplayName() + ":\n"));
+				
+				String v4_address = null;
+				String v6_address = null;
+				
+				try {
+					Set<byte []> listedAdresses = subSlave.getChannel().call(new IPLister());
+					
+					for (byte[] listedAddress: listedAdresses) {
+						InetAddress inetAddress = InetAddress.getByAddress(listedAddress);
+						
+						// FIXME: maybe should check availability from the ROOT slave, not from Jenkins
+						if (inetAddress.isReachable(PING_TIMEOUT)) {
+							// long address means NOT IPv4
+							if (listedAddress.length > 4) {
+								v6_address = inetAddress.getHostAddress();
+							} else {
+								v4_address = inetAddress.getHostAddress();
+							}
+						}
 					}
-				} else if (subSlave instanceof JCloudsSlave) {
-					listener.getLogger().println("[compound-slave] slave " + subSlave.getDisplayName() + " is a JCloudSlave - adding it's IP adress");
-					JCloudsSlave jcloudSlave = (JCloudsSlave) subSlave;
-					NodeMetadata metaData = jcloudSlave.getNodeMetaData();
-					String address = (String) metaData.getPublicAddresses().toArray()[0];
-					values.put(MessageFormat.format("{0}_{1}_{2}", role, i, "ip").toLowerCase(), address);
-
-				} else {
-					listener.getLogger().println("[compound-slave] slave " + subSlave.getDisplayName() + " is not a useful slave");
+					
+					listener.getLogger().println("[compound-slave] Listed addresses of " + slave.getDisplayName() + " are: v4=" + v4_address + ", v6=" + v6_address);
+					
+					if (v4_address != null) {
+						values.put(MessageFormat.format("{0}_{1}_{2}", role, i, "ipv4").toLowerCase(), v4_address);
+					}
+					if (v6_address != null) {
+						values.put(MessageFormat.format("{0}_{1}_{2}", role, i, "ipv6").toLowerCase(), v6_address);
+					}
+					if (v4_address != null || v6_address != null) {
+						// Use v4 address as default address
+						String address = v4_address == null ? v6_address : v4_address;
+						values.put(MessageFormat.format("{0}_{1}_{2}", role, i, "ip").toLowerCase(), address);
+					}
+					
+				} catch (Exception e) {
+					// FIXME: maybe should re-try obtaining the addresses?
+					listener.getLogger().println("[compound-slave] Failed to get IP adress of " + slave.getDisplayName());
+					e.printStackTrace(listener.getLogger());					
 				}
 			}
 		}
 		return values;
+	}
+	
+	/**
+	 * Callable that returns all non-loopback active IP addresses
+	 * 
+	 * @author pupssman
+	 */
+	public static class IPLister implements Callable<Set<byte []>, IOException> {
+
+		private static final long serialVersionUID = 1L;
+
+		@Override
+		public Set<byte []> call() throws IOException {
+			HashSet<byte []> addresses = new HashSet<byte []>();
+			
+			Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+			
+			while (interfaces.hasMoreElements()) {
+				NetworkInterface networkInterface = interfaces.nextElement();
+				
+				if (! networkInterface.isUp()) {
+					continue; // take next interface
+				}
+				
+				Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
+				
+				while (inetAddresses.hasMoreElements()) {
+					InetAddress address = inetAddresses.nextElement();
+					
+					if (!address.isLoopbackAddress()) {
+						addresses.add(address.getAddress());
+					}
+				}
+			}
+			
+			return addresses;
+		}
+		
 	}
 
 }
