@@ -13,8 +13,12 @@ import hudson.model.Slave;
 import hudson.remoting.Callable;
 
 import java.io.IOException;
+import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
+import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.text.MessageFormat;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -31,6 +35,7 @@ import java.util.Set;
 @Extension
 public class CompoundEnvironmentContributor extends EnvironmentContributor {
 
+	private static final int[] TEST_PORTS = new int[] {22, 80, 443, 8080};
 	private static final int PING_TIMEOUT = 500;
 
 	public static final class EnvironmentAction extends InvisibleAction {
@@ -106,15 +111,13 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 				String v6_address = null;
 				
 				try {
-					Set<byte []> listedAdresses = subSlave.getChannel().call(new IPLister());
+					Set<InetAddress> listedAdresses = subSlave.getChannel().call(new IPLister());
 					
-					for (byte[] listedAddress: listedAdresses) {
-						InetAddress inetAddress = InetAddress.getByAddress(listedAddress);
+					for (InetAddress inetAddress: listedAdresses) {
 						
 						// FIXME: maybe should check availability from the ROOT slave, not from Jenkins
-						if (inetAddress.isReachable(PING_TIMEOUT)) {
-							// long address means NOT IPv4
-							if (listedAddress.length > 4) {
+						if (isReachable(inetAddress)) {
+							if (inetAddress instanceof Inet6Address) {
 								v6_address = inetAddress.getHostAddress();
 							} else {
 								v4_address = inetAddress.getHostAddress();
@@ -122,7 +125,7 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 						}
 					}
 					
-					listener.getLogger().println("[compound-slave] Listed addresses of " + slave.getDisplayName() + " are: v4=" + v4_address + ", v6=" + v6_address);
+					listener.getLogger().println("[compound-slave] Listed addresses of " + subSlave.getDisplayName() + " are: v4=" + v4_address + ", v6=" + v6_address);
 					
 					if (v4_address != null) {
 						values.put(MessageFormat.format("{0}_{1}_{2}", role, i, "ipv4").toLowerCase(), v4_address);
@@ -138,7 +141,7 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 					
 				} catch (Exception e) {
 					// FIXME: maybe should re-try obtaining the addresses?
-					listener.getLogger().println("[compound-slave] Failed to get IP adress of " + slave.getDisplayName());
+					listener.getLogger().println("[compound-slave] Failed to get IP adress of " + subSlave.getDisplayName());
 					e.printStackTrace(listener.getLogger());					
 				}
 			}
@@ -151,13 +154,13 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 	 * 
 	 * @author pupssman
 	 */
-	public static class IPLister implements Callable<Set<byte []>, IOException> {
+	public static class IPLister implements Callable<Set<InetAddress>, IOException> {
 
 		private static final long serialVersionUID = 1L;
 
 		@Override
-		public Set<byte []> call() throws IOException {
-			HashSet<byte []> addresses = new HashSet<byte []>();
+		public Set<InetAddress> call() throws IOException {
+			HashSet<InetAddress> addresses = new HashSet<InetAddress>();
 			
 			Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
 			
@@ -174,7 +177,7 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 					InetAddress address = inetAddresses.nextElement();
 					
 					if (!address.isLoopbackAddress()) {
-						addresses.add(address.getAddress());
+						addresses.add(address);
 					}
 				}
 			}
@@ -182,6 +185,41 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 			return addresses;
 		}
 		
+	}
+
+	/**
+	 * A smarter function that checks if address is reachable in the desired way
+	 * 
+	 * Tries {@link InetAddress#isReachable(int)} first.
+	 * 
+	 * If that fails, tries to open socket to common ports (SSH, 80, 443, 8080) to guess that machine is alive. 
+	 * 
+	 * @param address to test
+	 * @return if we've managed to reach the machine
+	 */
+	public static boolean isReachable(InetAddress address) {
+		try {
+			if(address.isReachable(PING_TIMEOUT)) {
+				return true;
+			}
+		} catch (IOException e) {}
+		
+		Socket socket = new Socket();
+		
+		try {
+			for (int port: TEST_PORTS) {
+				try {
+					socket.connect(new InetSocketAddress(address, port), PING_TIMEOUT);
+					return true;
+				} catch (IOException e) {}
+			}
+			
+			return false;
+		} finally {
+			try {
+				socket.close();
+			} catch (IOException e) {}
+		}
 	}
 
 }
