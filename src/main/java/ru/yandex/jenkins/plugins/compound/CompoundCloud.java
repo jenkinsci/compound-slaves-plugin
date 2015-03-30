@@ -404,7 +404,7 @@ public class CompoundCloud extends AbstractCloudImpl {
 				return FormValidation.error("No other cloud can provision <" + labelAtom + ">");
 			}
 		}
-		
+
 		public FormValidation doCheckRetryTimeout(@QueryParameter String retryTimeout) {
 			if (retryTimeout.matches("\\d+")) {
 				return FormValidation.ok();
