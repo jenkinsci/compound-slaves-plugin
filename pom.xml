@@ -8,7 +8,7 @@
 
   <groupId>com.yandex.at.jenkins</groupId>
   <artifactId>compound-slaves</artifactId>
-  <version>2.0.1</version>
+  <version>2.1-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <developers>
@@ -28,7 +28,7 @@
     <connection>scm:git:https://github.yandex-team.ru/QAMS/compound-slaves.git</connection>
     <developerConnection>scm:git:ssh://git@github.yandex-team.ru/QAMS/compound-slaves.git</developerConnection>
     <url>https://github.yandex-team.ru/QAMS/compound-slaves</url>
-    <tag>compound-slaves-2.0.1</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <organization>
