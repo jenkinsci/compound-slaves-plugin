@@ -11,19 +11,34 @@
   <version>2.0-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
-  <!-- get every artifact through repo.jenkins-ci.org, which proxies all the artifacts that we need -->
+  <developers>
+    <developer>
+      <id>pupssman</id>
+      <name>Ivan Kalinin</name>
+      <email>pupssman@yandex-team.ru</email>
+    </developer>
+    <developer>
+      <id>dchr</id>
+      <name>Denis Chernilevsky</name>
+      <email>dchr@yandex-team.ru</email>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:https://github.yandex-team.ru/QAMS/compound-slaves.git</connection>
+    <developerConnection>scm:git:ssh://git@github.yandex-team.ru/QAMS/compound-slaves.git</developerConnection>
+    <url>https://github.yandex-team.ru/QAMS/compound-slaves</url>
+    <tag>HEAD</tag>
+  </scm>
+
+  <organization>
+    <url>https://github.yandex-team.ru/QAMS</url>
+  </organization>
+
   <repositories>
     <repository>
       <id>repo.jenkins-ci.org</id>
       <url>http://repo.jenkins-ci.org/public/</url>
-    </repository>
-    <repository>
-      <id>sonatype</id>
-      <url>https://oss.sonatype.org/content/repositories/releases</url>
-    </repository>
-    <repository>
-      <id>sonatype-snapshot</id>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
     </repository>
   </repositories>
 
