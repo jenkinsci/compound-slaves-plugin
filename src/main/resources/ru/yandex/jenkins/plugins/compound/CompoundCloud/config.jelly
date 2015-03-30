@@ -21,7 +21,7 @@
                 <f:select value="${subconf.role}" />
               </f:entry>
               <f:entry title="${%Label}" field="labelAtom">
-                <f:combobox value="${subconf.labelAtom}" />
+                <f:textbox value="${subconf.labelAtom}" />
               </f:entry>
               <f:entry title="${%Number}" field="number">
                 <f:textbox value="${subconf.number}" />
