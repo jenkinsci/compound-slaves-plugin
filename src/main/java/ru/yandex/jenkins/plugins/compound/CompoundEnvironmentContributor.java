@@ -18,7 +18,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.Socket;
-import java.net.SocketTimeoutException;
 import java.text.MessageFormat;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -35,7 +34,7 @@ import java.util.Set;
 @Extension
 public class CompoundEnvironmentContributor extends EnvironmentContributor {
 
-	private static final int[] TEST_PORTS = new int[] {22, 80, 443, 8080};
+	private static final int[] TEST_PORTS = new int[] {22, 23, 80, 443, 8080};
 	private static final int PING_TIMEOUT = 500;
 
 	public static final class EnvironmentAction extends InvisibleAction {
@@ -68,12 +67,16 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 		if (node instanceof CompoundSlave) {
 			listener.getLogger().println("[compound-slave] Contributing environment for " + run.getFullDisplayName());
 
-			buildEnvironmentFor((CompoundSlave) node, envs, listener);
+			try {
+				buildEnvironmentFor((CompoundSlave) node, envs, listener);
+			} catch (CompoundingException e) {
+				throw new IOException(e);
+			}
 		}
 
 	}
 
-	private void buildEnvironmentFor(CompoundSlave slave, EnvVars envs, TaskListener listener) {
+	private void buildEnvironmentFor(CompoundSlave slave, EnvVars envs, TaskListener listener) throws CompoundingException {
 		EnvironmentAction environmentAction = slave.toComputer().getAction(EnvironmentAction.class);
 
 		Map<String, String> values;
@@ -92,13 +95,12 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 	/**
 	 * Compute actual values based on given {@link CompoundSlave}
 	 *
-	 * So far, it supports extraction of IP-addresses from the {@link NimbulaSlave}'s
-	 * This works if the <b>nimbula</b> plugin is installed
 	 * @param slave
 	 * @param listener
 	 * @return
+	 * @throws CompoundingException if there was a problem with contacting sub-slaves
 	 */
-	private Map<String, String> computeValues(CompoundSlave slave, TaskListener listener) {
+	private Map<String, String> computeValues(CompoundSlave slave, TaskListener listener) throws CompoundingException {
 		Map<String, String> values;
 		values = new HashMap<String, String>();
 
@@ -106,16 +108,16 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 			int i = 0;
 			for (Slave subSlave: slave.getAllSlaves().get(role)) {
 				i++;
-				
+
 				String v4_address = null;
 				String v6_address = null;
-				
+
 				try {
 					Set<InetAddress> listedAdresses = subSlave.getChannel().call(new IPLister());
-					
+
 					for (InetAddress inetAddress: listedAdresses) {
-						
-						// FIXME: maybe should check availability from the ROOT slave, not from Jenkins
+
+						// FIXME: maybe should check availability from the ROOT slave, not from master?
 						if (isReachable(inetAddress)) {
 							if (inetAddress instanceof Inet6Address) {
 								v6_address = inetAddress.getHostAddress();
@@ -124,9 +126,9 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 							}
 						}
 					}
-					
+
 					listener.getLogger().println("[compound-slave] Listed addresses of " + subSlave.getDisplayName() + " are: v4=" + v4_address + ", v6=" + v6_address);
-					
+
 					if (v4_address != null) {
 						values.put(MessageFormat.format("{0}_{1}_{2}", role, i, "ipv4").toLowerCase(), v4_address);
 					}
@@ -138,20 +140,20 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 						String address = v4_address == null ? v6_address : v4_address;
 						values.put(MessageFormat.format("{0}_{1}_{2}", role, i, "ip").toLowerCase(), address);
 					}
-					
+
 				} catch (Exception e) {
-					// FIXME: maybe should re-try obtaining the addresses?
-					listener.getLogger().println("[compound-slave] Failed to get IP adress of " + subSlave.getDisplayName());
-					e.printStackTrace(listener.getLogger());					
+					String message = "[compound-slave] Failed to get IP adress of " + subSlave.getDisplayName();
+					listener.getLogger().println(message);
+					throw new CompoundingException(message, e);
 				}
 			}
 		}
 		return values;
 	}
-	
+
 	/**
 	 * Callable that returns all non-loopback active IP addresses
-	 * 
+	 *
 	 * @author pupssman
 	 */
 	public static class IPLister implements Callable<Set<InetAddress>, IOException> {
@@ -161,39 +163,39 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 		@Override
 		public Set<InetAddress> call() throws IOException {
 			HashSet<InetAddress> addresses = new HashSet<InetAddress>();
-			
+
 			Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
-			
+
 			while (interfaces.hasMoreElements()) {
 				NetworkInterface networkInterface = interfaces.nextElement();
-				
+
 				if (! networkInterface.isUp()) {
 					continue; // take next interface
 				}
-				
+
 				Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
-				
+
 				while (inetAddresses.hasMoreElements()) {
 					InetAddress address = inetAddresses.nextElement();
-					
+
 					if (!address.isLoopbackAddress()) {
 						addresses.add(address);
 					}
 				}
 			}
-			
+
 			return addresses;
 		}
-		
 	}
 
 	/**
-	 * A smarter function that checks if address is reachable in the desired way
-	 * 
-	 * Tries {@link InetAddress#isReachable(int)} first.
-	 * 
-	 * If that fails, tries to open socket to common ports (SSH, 80, 443, 8080) to guess that machine is alive. 
-	 * 
+	 * A smarter function that checks if address is reachable in the desired way. <br>
+	 *
+	 * Tries {@link InetAddress#isReachable(int)} first. <br>
+	 *
+	 * If that fails, tries to open socket to common ports (from {@link CompoundEnvironmentContributor#TEST_PORTS})
+	 * to guess if that address is reachable.
+	 *
 	 * @param address to test
 	 * @return if we've managed to reach the machine
 	 */
@@ -203,9 +205,9 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 				return true;
 			}
 		} catch (IOException e) {}
-		
+
 		Socket socket = new Socket();
-		
+
 		try {
 			for (int port: TEST_PORTS) {
 				try {
@@ -213,7 +215,7 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 					return true;
 				} catch (IOException e) {}
 			}
-			
+
 			return false;
 		} finally {
 			try {
