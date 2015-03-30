@@ -9,6 +9,7 @@ import hudson.model.Queue.Executable;
 import hudson.model.Queue.Task;
 import hudson.model.queue.SubTask;
 import hudson.model.queue.CauseOfBlockage;
+import hudson.security.ACL;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -17,6 +18,8 @@ import java.lang.reflect.Method;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collection;
+
+import org.acegisecurity.Authentication;
 
 public class ComputerAccessHack {
 	private final Computer computer;
@@ -150,6 +153,11 @@ public class ComputerAccessHack {
 			@Override
 			public Collection<? extends SubTask> getSubTasks() {
 				return Arrays.asList(this);
+			}
+
+			@Override
+			public Authentication getDefaultAuthentication() {
+				return ACL.SYSTEM;
 			}};
 
 		return task.createExecutable();
