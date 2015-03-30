@@ -389,7 +389,7 @@ public class CompoundCloud extends AbstractCloudImpl {
 
 		/**
 		 * FIXME: we use <b>role</b> to distinguish <b>labelAtom</b> of {@link ConfigurationEntry} and of a 
-		 * {@link SlaveEntry} -- the former will have <b>null</b> role, the latter will the have actual role injected.
+		 * {@link SlaveEntry} -- the former will have <b>null</b> role, the latter will have actual role injected.
 		 * 
 		 * TODO: we could actually list these via {@link Jenkins#getLabelAtoms()}, not just validate
 		 * 
