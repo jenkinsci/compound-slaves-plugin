@@ -8,7 +8,7 @@
 
   <groupId>com.yandex.at.jenkins</groupId>
   <artifactId>compound-slaves</artifactId>
-  <version>2.0-SNAPSHOT</version>
+  <version>2.1-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <developers>
