@@ -49,7 +49,6 @@ import ru.yandex.jenkins.plugins.compound.CompoundSlave.Entry;
  * @author pupssman
  */
 public class CompoundCloud extends AbstractCloudImpl {
-	protected final String backend;
 	protected final int retryTimeout;
 	protected final AtomicInteger nodesProvisioned;
 	protected final List<? extends ConfigurationEntry> configuration;
@@ -138,13 +137,12 @@ public class CompoundCloud extends AbstractCloudImpl {
 	 * @author dchr
 	 */
 	@DataBoundConstructor
-	public CompoundCloud(String name, String maxInstances, String backendCloud, String retryTimeout, List<ConfigurationEntry> configuration) {
-		this(name, maxInstances, backendCloud, configuration, retryTimeout);
+	public CompoundCloud(String name, String maxInstances, String retryTimeout, List<ConfigurationEntry> configuration) {
+		this(name, maxInstances, configuration, retryTimeout);
 	}
 	
-	public CompoundCloud(String name, String maxInstances, String backendCloud, List<? extends ConfigurationEntry> configuration, String retryTimeout) {
+	public CompoundCloud(String name, String maxInstances, List<? extends ConfigurationEntry> configuration, String retryTimeout) {
 		super(name, maxInstances);
-		this.backend = backendCloud;
 		this.configuration = configuration;
 		this.retryTimeout = Integer.parseInt(retryTimeout);
 
@@ -257,8 +255,17 @@ public class CompoundCloud extends AbstractCloudImpl {
 				List<PlannedNode> plannedNodes = new ArrayList<NodeProvisioner.PlannedNode>();
 
 				LabelAtom labelAtomForProvisioning = slaveEntry.getLabelAtomForProvisioning();
+				
+				Cloud cloud = getCloudToProvision(labelAtomForProvisioning);
+				
+				if (cloud == null) {
+					String message = MessageFormat.format("No cloud is capable of deploying requested label atom {0}", labelAtomForProvisioning);
+					logger.warning(message);
+					throw new CompoundingException(message);
+				}
+				
 				for (int i = 0; i < slaveEntry.getNumber(); i++) {
-					plannedNodes.addAll(getBackendCloud().provision(labelAtomForProvisioning, 1));
+					plannedNodes.addAll(cloud.provision(labelAtomForProvisioning, 1));
 				}
 
 				List<Entry> result = FunctionalPrimitives.map(plannedNodes, new Functor<PlannedNode, Entry>() {
@@ -380,17 +387,22 @@ public class CompoundCloud extends AbstractCloudImpl {
 			return model;
 		}
 
-		public ListBoxModel doFillBackendCloudItems() {
-			ListBoxModel model = new ListBoxModel();
-
-			for (Cloud cloud : Jenkins.getInstance().clouds) {
-				if (cloud instanceof CompoundCloud) {
-					continue;
-				}
-				model.add(cloud.getDisplayName(), cloud.name);
+		/**
+		 * FIXME: we use <b>role</b> to distinguish <b>labelAtom</b> of {@link ConfigurationEntry} and of a 
+		 * {@link SlaveEntry} -- the former will have <b>null</b> role, the latter will have actual role injected.
+		 * 
+		 * TODO: we could actually list these via {@link Jenkins#getLabelAtoms()}, not just validate
+		 * 
+		 * @param labelAtom
+		 * @param role
+		 * @return
+		 */
+		public FormValidation doCheckLabelAtom(@QueryParameter String labelAtom, @QueryParameter String role) {
+			if (role == null || getCloudToProvision(new LabelAtom(labelAtom)) != null) {
+				return FormValidation.ok();
+			} else {
+				return FormValidation.error("No other cloud can provision <" + labelAtom + ">");
 			}
-
-			return model;
 		}
 
 		public FormValidation doCheckRetryTimeout(@QueryParameter String retryTimeout) {
@@ -400,14 +412,22 @@ public class CompoundCloud extends AbstractCloudImpl {
 				return FormValidation.error("Bad value: use number");
 			}
 		}
-	}
-
-	public Cloud getBackendCloud() {
-		return Jenkins.getInstance().getCloud(backend);
-	}
-
-	public String getBackend() {
-		return backend;
+		
+		public FormValidation doCheckNumber(@QueryParameter String number) {
+			if (number.matches("\\d+")) {
+				return FormValidation.ok();
+			} else {
+				return FormValidation.error("Bad value: use number");
+			}
+		}
+		
+		public FormValidation doCheckMaxInstances(@QueryParameter String maxInstances) {
+			if (maxInstances.matches("\\d+")) {
+				return FormValidation.ok();
+			} else {
+				return FormValidation.error("Bad value: use number");
+			}
+		}
 	}
 
 	public List<? extends ConfigurationEntry> getConfiguration() {
@@ -420,6 +440,21 @@ public class CompoundCloud extends AbstractCloudImpl {
 
 	public AtomicInteger getNodesProvisioned() {
 		return nodesProvisioned;
+	}
+	
+	/**
+	 * Looks up a {@link Cloud} from {@link Jenkins} that is capable of deploying given {@link Label}
+	 * 
+	 * @param label to be deployed
+	 * @return <b>null</b> if no such cloud was found
+	 */
+	public static Cloud getCloudToProvision(Label label) {
+		for (Cloud cloud: Jenkins.getInstance().clouds) {
+			if (cloud.canProvision(label) && !(cloud instanceof CompoundCloud)) {
+				return cloud;
+			} 
+		}
+		return null;
 	}
 
 }
