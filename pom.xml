@@ -10,6 +10,9 @@
   <artifactId>compound-slaves</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>hpi</packaging>
+  <url>https://wiki.jenkins-ci.org/display/JENKINS/Compound+Slaves</url>
+  <name>Compound Slaves</name>
+
 
   <developers>
     <developer>
