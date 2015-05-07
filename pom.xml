@@ -36,10 +36,6 @@
     <tag>HEAD</tag>
   </scm>
 
-  <organization>
-    <url>https://github.yandex-team.ru/QAMS</url>
-  </organization>
-
   <repositories>
     <repository>
       <id>repo.jenkins-ci.org</id>
