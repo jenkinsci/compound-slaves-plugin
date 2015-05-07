@@ -6,9 +6,9 @@
     <version>1.580</version><!-- which version of Jenkins is this plugin built against? -->
   </parent>
 
-  <groupId>com.yandex.at.jenkins</groupId>
+  <groupId>ru.yandex.jenkins.plugins.compound-slaves</groupId>
   <artifactId>compound-slaves</artifactId>
-  <version>2.1-SNAPSHOT</version>
+  <version>1.0-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <developers>
@@ -18,6 +18,11 @@
       <email>pupssman@yandex-team.ru</email>
     </developer>
     <developer>
+      <id>mavlyutov</id>
+      <name>Marat Mavlyutov</name>
+      <email>mavlyutov@yandex-team.ru</email>
+    </developer>
+    <developer>
       <id>dchr</id>
       <name>Denis Chernilevsky</name>
       <email>dchr@yandex-team.ru</email>
@@ -25,9 +30,9 @@
   </developers>
 
   <scm>
-    <connection>scm:git:https://github.yandex-team.ru/QAMS/compound-slaves.git</connection>
-    <developerConnection>scm:git:ssh://git@github.yandex-team.ru/QAMS/compound-slaves.git</developerConnection>
-    <url>https://github.yandex-team.ru/QAMS/compound-slaves</url>
+    <connection>scm:git:https://github.com/jenkinsci/compound-slaves-plugin.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/compound-slaves-plugin.git</developerConnection>
+    <url>https://github.com/jenkinsci/compound-slaves-plugin</url>
     <tag>HEAD</tag>
   </scm>
 
@@ -39,6 +44,14 @@
     <repository>
       <id>repo.jenkins-ci.org</id>
       <url>http://repo.jenkins-ci.org/public/</url>
+    </repository>
+    <repository>
+      <id>sonatype</id>
+      <url>https://oss.sonatype.org/content/repositories/releases</url>
+    </repository>
+    <repository>
+      <id>sonatype-snapshot</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
     </repository>
   </repositories>
 
@@ -65,12 +78,6 @@
         <configuration>
           <source>1.6</source>
           <target>1.6</target>
-        </configuration>
-      </plugin>
-      <plugin>
-        <artifactId>maven-release-plugin</artifactId>
-        <configuration>
-          <goals>package</goals>
         </configuration>
       </plugin>
     </plugins>

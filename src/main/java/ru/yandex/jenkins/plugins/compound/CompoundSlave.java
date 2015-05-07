@@ -208,41 +208,27 @@ public class CompoundSlave extends AbstractCloudSlave {
 			}
 		}
 		
-		public Object readResolve() {
-			if(roles != null && !roles.isEmpty()){
-				for(String role : roles){
-					if(!role.equalsIgnoreCase(ROLE_ROOT)){
-						role_entries.add(new RoleEntry(role, null));
-					}
-				}
-				roles.clear();
-			}
-			return this;
-		}
-		
 		public DescriptorImpl() {
 			super();
 			load();
 		}
 
-		@Deprecated
-		private final List<String> roles = new ArrayList<String>();
-		private final List<RoleEntry> role_entries = new ArrayList<RoleEntry>(Arrays.asList(new RoleEntry(ROLE_ROOT, null)));
+		private final List<RoleEntry> roles = new ArrayList<RoleEntry>(Arrays.asList(new RoleEntry(ROLE_ROOT, null)));
 
 		public List<String> getRoleNames() {
 			ArrayList<String> roleNames = new ArrayList<String>();
-			for(RoleEntry entry : role_entries) {
+			for(RoleEntry entry : roles) {
 				roleNames.add(entry.getRole());
 			}
 			return roleNames;
 		}
 		
 		public List<RoleEntry> getRoles() {
-			return new ArrayList<RoleEntry>(role_entries);
+			return new ArrayList<RoleEntry>(roles);
 		}
 
 		public String getDefaultLabelForRole(String role) {
-			for(RoleEntry entry : role_entries) {
+			for(RoleEntry entry : roles) {
 				if(entry.getRole().equals(role)){
 					return entry.getDefaultLabel();
 				}
@@ -287,7 +273,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 		private void addRoleFrom(JSONObject roleObject) {
 			String role = roleObject.getString("role");
 			String defaultLabel = roleObject.getString("defaultLabel");
-			role_entries.add(new RoleEntry(role, defaultLabel));
+			roles.add(new RoleEntry(role, defaultLabel));
 		}
 
 		@Override
@@ -295,19 +281,19 @@ public class CompoundSlave extends AbstractCloudSlave {
 			Object rolesObject = formData.get("roles");
 
 			List<RoleEntry> oldRoles = getRoles();
-			role_entries.clear();
+			roles.clear();
 
 			if (rolesObject instanceof JSONObject) {
-				// means we get a set of values
+				// means we get just a single value from the page
 				addRoleFrom((JSONObject) rolesObject);
 			} else if (rolesObject instanceof JSONArray) {
-				// means we get just a single value from the page
+				// means we get a set of values
 				for (int i = 0; i < ((JSONArray) rolesObject).size(); i++) {
 					addRoleFrom(((JSONArray) rolesObject).getJSONObject(i));
 				}
 			} else if (rolesObject != null) {
 				// something unexpected - restore old roles
-				role_entries.addAll(oldRoles);
+				roles.addAll(oldRoles);
 			}
 			save();
 			return super.configure(req, formData);
