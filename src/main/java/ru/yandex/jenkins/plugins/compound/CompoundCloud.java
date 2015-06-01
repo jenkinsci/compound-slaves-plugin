@@ -349,7 +349,7 @@ public class CompoundCloud extends AbstractCloudImpl {
 
 	@Override
 	public boolean canProvision(Label label) {
-		if(configuration == null) { 
+		if(configuration == null || label == null) {
 			return false;
 		}
 		for (ConfigurationEntry entry : configuration) {
