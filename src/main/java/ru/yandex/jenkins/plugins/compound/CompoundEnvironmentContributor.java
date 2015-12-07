@@ -118,7 +118,7 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 					for (InetAddress inetAddress: listedAdresses) {
 
 						// FIXME: maybe should check availability from the ROOT slave, not from master?
-						if (isReachable(inetAddress) && !inetAddress.isLinkLocalAddress()) {
+						if (inetAddress != null && !inetAddress.isLinkLocalAddress() && isReachable(inetAddress) ) {
 							if (inetAddress instanceof Inet6Address) {
 								v6_address = inetAddress.getHostAddress();
 							} else {
