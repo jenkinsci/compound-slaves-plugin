@@ -155,6 +155,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 	private CompoundSlave(String name, String description, String remoteFS, String label) throws FormException, IOException {
 		super(name, description, remoteFS, 1, Mode.EXCLUSIVE, label, null, new Always(), new ArrayList<NodeProperty<Slave>>());
 		setLauncher(new CompoundLauncher(this));
+		getNodeProperties().add(new CompoundNodeProperty(this));
 		self = this;
 	}
 

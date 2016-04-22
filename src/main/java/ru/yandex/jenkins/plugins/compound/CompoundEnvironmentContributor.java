@@ -76,7 +76,7 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 
 	}
 
-	private void buildEnvironmentFor(CompoundSlave slave, EnvVars envs, TaskListener listener) throws CompoundingException {
+	/*package*/ static void buildEnvironmentFor(CompoundSlave slave, EnvVars envs, TaskListener listener) throws CompoundingException {
 		EnvironmentAction environmentAction = slave.toComputer().getAction(EnvironmentAction.class);
 
 		Map<String, String> values;
@@ -100,7 +100,7 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 	 * @return
 	 * @throws CompoundingException if there was a problem with contacting sub-slaves
 	 */
-	private Map<String, String> computeValues(CompoundSlave slave, TaskListener listener) throws CompoundingException {
+	private static Map<String, String> computeValues(CompoundSlave slave, TaskListener listener) throws CompoundingException {
 		Map<String, String> values;
 		values = new HashMap<String, String>();
 
