@@ -14,8 +14,6 @@ import hudson.util.DescribableList;
 
 import java.io.IOException;
 
-import org.netbeans.insane.impl.InsaneEngine;
-
 
 /**
  * This thing is used to contribute slave parameters to running build
