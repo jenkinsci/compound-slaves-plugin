@@ -33,10 +33,13 @@ public class CompoundNodeProperty extends NodeProperty<CompoundSlave> {
 
 	private Map<String, String> values = null;
 
+	// Stored here instead of parent's .node because that one is transient
+	private final CompoundSlave compoundSlave;
+
 	public CompoundNodeProperty(CompoundSlave compoundSlave) {
 		super();
 
-		setNode(compoundSlave);
+		this.compoundSlave = compoundSlave;
 	}
 
 	@Override
@@ -45,7 +48,7 @@ public class CompoundNodeProperty extends NodeProperty<CompoundSlave> {
 			try {
 				listener.getLogger().println("[compound-slave] No environment known - computing...");
 
-				values = computeValues(node, listener);
+				values = computeValues(compoundSlave, listener);
 			} catch (CompoundingException e) {
 				throw new IOException(e);
 			}

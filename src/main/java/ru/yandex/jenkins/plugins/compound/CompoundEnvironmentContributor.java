@@ -8,8 +8,13 @@ import hudson.model.EnvironmentContributor;
 import hudson.model.Executor;
 import hudson.model.Node;
 import hudson.model.Run;
+import hudson.slaves.NodeProperty;
+import hudson.slaves.NodePropertyDescriptor;
+import hudson.util.DescribableList;
 
 import java.io.IOException;
+
+import org.netbeans.insane.impl.InsaneEngine;
 
 
 /**
@@ -37,11 +42,18 @@ public class CompoundEnvironmentContributor extends EnvironmentContributor {
 			return;
 		}
 
-		CompoundNodeProperty property = node.getNodeProperties().get(CompoundNodeProperty.class);
-		if (property == null) {
+		if (!(node instanceof CompoundSlave)) {
 			return;
 		}
 
-		property.buildEnvVars(envs, listener);
+		DescribableList<NodeProperty<?>, NodePropertyDescriptor> props = node.getNodeProperties();
+
+		// previous version of the plugin does not have this fancy node property
+		// grant old slaves such property
+		if (props.get(CompoundNodeProperty.class) == null) {
+			props.add(new CompoundNodeProperty((CompoundSlave) node));
+		}
+
+		props.get(CompoundNodeProperty.class).buildEnvVars(envs, listener);
 	}
 }
