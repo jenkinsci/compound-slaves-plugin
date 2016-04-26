@@ -155,6 +155,7 @@ public class CompoundSlave extends AbstractCloudSlave {
 	private CompoundSlave(String name, String description, String remoteFS, String label) throws FormException, IOException {
 		super(name, description, remoteFS, 1, Mode.EXCLUSIVE, label, null, new Always(), new ArrayList<NodeProperty<Slave>>());
 		setLauncher(new CompoundLauncher(this));
+		getNodeProperties().add(new CompoundNodeProperty(this));
 		self = this;
 	}
 
@@ -352,14 +353,17 @@ public class CompoundSlave extends AbstractCloudSlave {
 	}
 
 	public static void free(Slave slave) {
-		try {
-			new ComputerAccessHack(slave.getComputer()).freeExecutors();
-		} catch (IllegalArgumentException e) {
-			logger.info("Failed to re-enable slave " + slave.getDisplayName() + " due to error:" + e.getMessage());
-		} catch (IllegalAccessException e) {
-			logger.info("Failed to re-enable slave " + slave.getDisplayName() + " due to error:" + e.getMessage());
+		if (slave.getComputer() != null) {
+			// no computer -- no executors -- no need to free
+			try {
+				new ComputerAccessHack(slave.getComputer()).freeExecutors();
+			} catch (IllegalArgumentException e) {
+				logger.info("Failed to re-enable slave " + slave.getDisplayName() + " due to error:" + e.getMessage());
+			} catch (IllegalAccessException e) {
+				logger.info("Failed to re-enable slave " + slave.getDisplayName() + " due to error:" + e.getMessage());
+			}
+			slave.getComputer().setAcceptingTasks(true);
 		}
-		slave.getComputer().setAcceptingTasks(true);
 	}
 
 	public static void enslave(Slave slave, CompoundSlave master) {
